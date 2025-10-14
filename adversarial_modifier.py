@@ -143,7 +143,7 @@ class AdversarialFaceModifier:
             **kwargs: Additional parameters for specific methods
             
         Returns:
-            Modified face image
+            modified face image
         """
         if method == "gan" and self.model is not None:
             # Use GAN model for modification
