@@ -95,4 +95,132 @@ class AdversarialFaceModifier:
         
         return perturbed
     
+    def apply_gaussian_blur(self, face_image: np.ndarray, 
+                           kernel_size: int = 5, sigma: float = 1.0) -> np.ndarray:
+        """
+        Apply Gaussian blur for privacy protection
+        
+        Args:
+            face_image: Input face image
+            kernel_size: Size of Gaussian kernel
+            sigma: Standard deviation for Gaussian kernel
+            
+        Returns:
+            Blurred face image
+        """
+        return cv2.GaussianBlur(face_image, (kernel_size, kernel_size), sigma)
+    
+    def apply_pixelation(self, face_image: np.ndarray, pixel_size: int = 10) -> np.ndarray:
+        """
+        Apply pixelation effect for privacy
+        
+        Args:
+            face_image: Input face image
+            pixel_size: Size of each pixel block
+            
+        Returns:
+            Pixelated face image
+        """
+        h, w = face_image.shape[:2]
+        
+        # Resize down
+        small = cv2.resize(face_image, (w // pixel_size, h // pixel_size), 
+                          interpolation=cv2.INTER_LINEAR)
+        
+        # Resize back up with nearest neighbor for blocky effect
+        pixelated = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+        
+        return pixelated
+    
+    def modify_face(self, face_image: np.ndarray, method: str = "perturbation", 
+                   **kwargs) -> np.ndarray:
+        """
+        Main function to modify face for privacy protection
+        
+        Args:
+            face_image: Input face image
+            method: Modification method ("gan", "perturbation", "blur", "pixelate")
+            **kwargs: Additional parameters for specific methods
+            
+        Returns:
+            modified face image
+        """
+        if method == "gan" and self.model is not None:
+            # Use GAN model for modification
+            preprocessed = self.preprocess_face(face_image)
+            modified = self.model.predict(preprocessed, verbose=0)
+            return self.postprocess_face(modified, 
+                                       (face_image.shape[1], face_image.shape[0]))
+        
+        elif method == "perturbation":
+            noise_factor = kwargs.get("noise_factor", 0.1)
+            return self.apply_simple_perturbation(face_image, noise_factor)
+        
+        elif method == "blur":
+            kernel_size = kwargs.get("kernel_size", 5)
+            sigma = kwargs.get("sigma", 1.0)
+            return self.apply_gaussian_blur(face_image, kernel_size, sigma)
+        
+        elif method == "pixelate":
+            pixel_size = kwargs.get("pixel_size", 10)
+            return self.apply_pixelation(face_image, pixel_size)
+        
+        else:
+            print(f"Unknown method: {method}. Using perturbation as fallback.")
+            return self.apply_simple_perturbation(face_image)
+
+def test_adversarial_modification():
+    """Test function for adversarial face modification"""
+    modifier = AdversarialFaceModifier()
+    
+    # Try to access webcam for testing
+    cap = cv2.VideoCapture(0)
+    
+    if not cap.isOpened():
+        print("Error: Could not access webcam")
+        return
+    
+    print("Adversarial modification test started. Press keys:")
+    print("'1' - Perturbation, '2' - Blur, '3' - Pixelate, 'q' - Quit")
+    
+    current_method = "perturbation"
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # For demo, apply modification to entire frame
+        if current_method == "perturbation":
+            modified = modifier.modify_face(frame, "perturbation", noise_factor=0.05)
+        elif current_method == "blur":
+            modified = modifier.modify_face(frame, "blur", kernel_size=7, sigma=2.0)
+        elif current_method == "pixelate":
+            modified = modifier.modify_face(frame, "pixelate", pixel_size=8)
+        else:
+            modified = frame
+        
+        # Display original and modified side by side
+        combined = np.hstack([frame, modified])
+        cv2.imshow('Original (left) vs Modified (right)', combined)
+        
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+        elif key == ord('1'):
+            current_method = "perturbation"
+            print("Switched to perturbation method")
+        elif key == ord('2'):
+            current_method = "blur"
+            print("Switched to blur method")
+        elif key == ord('3'):
+            current_method = "pixelate"
+            print("Switched to pixelate method")
+    
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    test_adversarial_modification()
+    
     
