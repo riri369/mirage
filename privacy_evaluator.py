@@ -92,3 +92,59 @@ class PrivacyEvaluator:
         except Exception as e:
             print(f"Error in face recognition: {e}")
             return []
+        
+    def evaluate_privacy_protection(self, original_image: np.ndarray, 
+                                  modified_image: np.ndarray) -> Dict[str, any]:
+        """
+        Evaluate how well the modification protects privacy
+        
+        Args:
+            original_image: Original face image
+            modified_image: Privacy-protected face image
+            
+        Returns:
+            Dictionary containing evaluation metrics
+        """
+        # Recognize faces in both images
+        original_results = self.recognize_face(original_image)
+        modified_results = self.recognize_face(modified_image)
+        
+        # Calculate metrics
+        original_recognized = len([r for r in original_results if r[0] != "Unknown"])
+        modified_recognized = len([r for r in modified_results if r[0] != "Unknown"])
+        
+        privacy_protection_rate = 0.0
+        if original_recognized > 0:
+            privacy_protection_rate = (original_recognized - modified_recognized) / original_recognized
+        
+        # Calculate image quality metrics (simple PSNR)
+        psnr = self.calculate_psnr(original_image, modified_image)
+        
+        # Calculate structural similarity
+        ssim = self.calculate_ssim_simple(original_image, modified_image)
+        
+        evaluation = {
+            "original_faces_recognized": original_recognized,
+            "modified_faces_recognized": modified_recognized,
+            "privacy_protection_rate": privacy_protection_rate,
+            "privacy_successful": modified_recognized == 0,
+            "image_quality_psnr": psnr,
+            "structural_similarity": ssim,
+            "original_results": original_results,
+            "modified_results": modified_results
+        }
+        
+        return evaluation
+    
+    def calculate_psnr(self, img1: np.ndarray, img2: np.ndarray) -> float:
+        """Calculate Peak Signal-to-Noise Ratio between two images"""
+        try:
+            mse = np.mean((img1.astype(np.float64) - img2.astype(np.float64)) ** 2)
+            if mse == 0:
+                return float('inf')
+            max_pixel = 255.0
+            psnr = 20 * np.log10(max_pixel / np.sqrt(mse))
+            return psnr
+        except Exception as e:
+            print(f"Error calculating PSNR: {e}")
+            return 0.0    
