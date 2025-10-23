@@ -147,4 +147,101 @@ class PrivacyEvaluator:
             return psnr
         except Exception as e:
             print(f"Error calculating PSNR: {e}")
-            return 0.0    
+            return 0.0 
+           
+    def calculate_ssim_simple(self, img1: np.ndarray, img2: np.ndarray) -> float:
+        """Simple structural similarity calculation"""
+        try:
+            # Convert to grayscale if needed
+            if len(img1.shape) == 3:
+                img1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+            if len(img2.shape) == 3:
+                img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+            
+            # Resize to same size if different
+            if img1.shape != img2.shape:
+                img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+            
+            # Simple correlation coefficient as SSIM approximation
+            img1_flat = img1.flatten().astype(np.float64)
+            img2_flat = img2.flatten().astype(np.float64)
+            
+            correlation = np.corrcoef(img1_flat, img2_flat)[0, 1]
+            return correlation if not np.isnan(correlation) else 0.0
+            
+        except Exception as e:
+            print(f"Error calculating SSIM: {e}")
+            return 0.0
+    
+    def print_evaluation_report(self, evaluation: Dict[str, any]):
+        """Print a formatted evaluation report"""
+        print("\n" + "="*50)
+        print("PRIVACY PROTECTION EVALUATION REPORT")
+        print("="*50)
+        print(f"Original faces recognized: {evaluation['original_faces_recognized']}")
+        print(f"Modified faces recognized: {evaluation['modified_faces_recognized']}")
+        print(f"Privacy protection rate: {evaluation['privacy_protection_rate']:.2%}")
+        print(f"Privacy protection successful: {evaluation['privacy_successful']}")
+        print(f"Image quality (PSNR): {evaluation['image_quality_psnr']:.2f} dB")
+        print(f"Structural similarity: {evaluation['structural_similarity']:.3f}")
+        
+        if evaluation['original_results']:
+            print("\nOriginal image recognition results:")
+            for name, confidence, location in evaluation['original_results']:
+                print(f"  - {name} (confidence: {confidence:.3f})")
+        
+        if evaluation['modified_results']:
+            print("\nModified image recognition results:")
+            for name, confidence, location in evaluation['modified_results']:
+                print(f"  - {name} (confidence: {confidence:.3f})")
+        
+        print("="*50)
+
+def test_privacy_evaluation():
+    """Test function for privacy evaluation"""
+    evaluator = PrivacyEvaluator()
+    
+    # Try to access webcam
+    cap = cv2.VideoCapture(0)
+    
+    if not cap.isOpened():
+        print("Error: Could not access webcam")
+        return
+    
+    print("Privacy evaluation test. Press:")
+    print("'a' - Add current face as known person")
+    print("'t' - Test recognition on current frame")
+    print("'q' - Quit")
+    
+    person_count = 0
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        cv2.imshow('Privacy Evaluation Test', frame)
+        
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord('q'):
+            break
+        elif key == ord('a'):
+            person_count += 1
+            person_name = f"Person_{person_count}"
+            success = evaluator.add_known_face(frame, person_name)
+            if success:
+                print(f"Added {person_name} to database")
+        elif key == ord('t'):
+            print("Testing recognition...")
+            results = evaluator.recognize_face(frame)
+            if results:
+                for name, confidence, location in results:
+                    print(f"Recognized: {name} (confidence: {confidence:.3f})")
+            else:
+                print("No faces recognized")
+    
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    test_privacy_evaluation()    
