@@ -44,15 +44,20 @@ class FaceDetector:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
         # Detect faces
-        faces = self.face_cascade.detectMultiScale(
-            gray, 
-            scaleFactor=scale_factor,
-            minNeighbors=min_neighbors,
-            minSize=min_size
-        )
-        
-        return faces.tolist()
-    
+        faces = self.face_cascade.detectMultiScale(gray, scaleFactor=scale_factor, minNeighbors=min_neighbors, minSize=min_size)
+
+        # Check if faces is a tuple and has content
+        if isinstance(faces, tuple):
+            if len(faces) > 0:
+                faces = faces[0]  # Extract rectangles
+            else:
+                return []  # No faces detected
+
+        if isinstance(faces, (list, np.ndarray)):
+            return faces.tolist()
+        else:
+            return []
+
     def extract_face_regions(self, image: np.ndarray, faces: List[Tuple[int, int, int, int]], 
                            padding: int = 10) -> List[np.ndarray]:
         """
