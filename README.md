@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MIRAGE
 
 ## Privacy-Preserving Face Detection System
@@ -246,3 +247,10 @@ License
 This project is for educational and research purposes. Please ensure compliance with applicable laws and regulations when using face detection and modification technologies.
 
 Note: This system is designed for research and educational purposes. Always consider ethical implications and legal requirements when working with biometric data and privacy protection technologies.
+=======
+# mirage
+
+ Privacy-Preserving Face Detection System
+ Integrates face detection, adversarial modification, and privacy evaluation
+
+>>>>>>> 39ffd0d8fc9e74d6d49b21392c7c101423b0b4e5
